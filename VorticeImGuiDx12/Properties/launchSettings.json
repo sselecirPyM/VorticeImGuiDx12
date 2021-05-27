@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "VorticeImGuiDx12": {
+      "commandName": "Project",
+      "nativeDebugging": true
+    }
+  }
+}
