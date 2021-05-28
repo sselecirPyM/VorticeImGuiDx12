@@ -90,7 +90,7 @@ namespace VorticeImGuiDx12
             graphicsContext.ScreenEndRender();
             graphicsContext.EndCommand();
             graphicsContext.Execute();
-            context.device.Present(false);
+            context.device.Present(true);
         }
 
         public virtual bool ProcessMessage(uint msg, UIntPtr wParam, IntPtr lParam)

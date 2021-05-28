@@ -137,6 +137,22 @@ namespace VorticeImGuiDx12.Interoperation
         Char = 0x0102,
         SysKeyDown = 0x0104,
         SysKeyUp = 0x0105,
+
+        ImeStartCompostition = 0x010D,
+        ImeEndComposition = 0x010E,
+        ImeComposition = 0x010F,
+        ImeKeyLast = 0x010F,
+        ImeSetContext = 0x0281,
+        ImeNotify = 0x0282,
+        ImeControl = 0x0283,
+        ImeCompositionFull = 0x0284,
+        ImeSelect = 0x0285,
+        ImeChar = 0x286,
+        ImeRequest = 0x0288,
+        ImeKeyDown = 0x0290,
+        ImeKeyUp = 0x0291,
+        InputLanguageChange = 0x0051,
+
         MouseMove = 0x0200,
         LButtonDown = 0x0201,
         LButtonUp = 0x0202,
@@ -157,6 +173,23 @@ namespace VorticeImGuiDx12.Interoperation
         WindowPositionChanging = 0x0046,
         WindowPositionChanged = 0x0047,
         DeviceChange = 0x0219
+    }
+
+    [Flags]
+    public enum CompositionStringFlag
+    {
+        ReadingString = 0x0001,
+        ReadingStringAttribute = 0x0002,
+        ReadingClause = 0x0004,
+        CompositionString = 0x0008,
+        CompositionStringAttribute = 0x0010,
+        CompositionStringClause = 0x0020,
+        CursorPosition = 0x0080,
+        DeltaStart = 0x0100,
+        ResultReadingString = 0x0200,
+        ResultReadingStringClause = 0x0400,
+        ResultString = 0x0800,
+        ResultClause = 0x1000
     }
 
     public enum ShowWindowCommand

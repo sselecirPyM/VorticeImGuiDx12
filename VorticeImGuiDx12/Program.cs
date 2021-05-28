@@ -1,6 +1,4 @@
 ﻿using System;
-using Vortice.Vulkan;
-using Vortice.DXGI;
 using static VorticeImGuiDx12.Interoperation.Kernel32;
 using static VorticeImGuiDx12.Interoperation.User32;
 using System.Collections.Generic;
