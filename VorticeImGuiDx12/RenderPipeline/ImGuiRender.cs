@@ -37,9 +37,10 @@ namespace VorticeImGuiDx12.RenderPipeline
             fontTexture = new Texture2D();
             context.renderTargets["imgui_font"] = fontTexture;
 
-            ImFontPtr font = io.Fonts.AddFontFromFileTTF("c:\\Windows\\Fonts\\SIMHEI.ttf", 14, null, io.Fonts.GetGlyphRangesChineseFull());
+            //ImFontPtr font = io.Fonts.AddFontFromFileTTF("c:\\Windows\\Fonts\\SIMHEI.ttf", 14, null, io.Fonts.GetGlyphRangesChineseFull());
 
             io.Fonts.GetTexDataAsRGBA32(out byte* pixels, out int width, out int height, out int bytesPerPixel);
+            io.Fonts.TexID = context.GetStringId("imgui_font");
 
             fontTexture.width = width;
             fontTexture.height = height;
@@ -77,7 +78,6 @@ namespace VorticeImGuiDx12.RenderPipeline
             int index1 = context.uploadBuffer.Upload<float>(mvp);
             graphicsContext.SetRootSignature(Pipeline12Util.FromString(context, "Cssss"));
             graphicsContext.SetPipelineState(context.pipelineStateObjects["ImGui"], psoDesc);
-            graphicsContext.SetSRV(fontTexture, 0);
             context.uploadBuffer.SetCBV(graphicsContext, index1, 0);
             graphicsContext.commandList.IASetPrimitiveTopology(Vortice.Direct3D.PrimitiveTopology.TriangleList);
 
@@ -100,6 +100,7 @@ namespace VorticeImGuiDx12.RenderPipeline
                     }
                     else
                     {
+                        graphicsContext.SetSRV(context.GetTexByStrId(cmd.TextureId), 0);
                         var rect = new Vortice.RawRect((int)(cmd.ClipRect.X - clip_off.X), (int)(cmd.ClipRect.Y - clip_off.Y), (int)(cmd.ClipRect.Z - clip_off.X), (int)(cmd.ClipRect.W - clip_off.Y));
                         graphicsContext.commandList.RSSetScissorRects(new[] { rect });
 

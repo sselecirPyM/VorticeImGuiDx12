@@ -21,6 +21,10 @@ namespace VorticeImGuiDx12.ResourcesManage
         public Dictionary<string, Mesh> meshes = new Dictionary<string, Mesh>();
         public Dictionary<string, Texture2D> renderTargets = new Dictionary<string, Texture2D>();
         public Dictionary<string, PipelineStateObject> pipelineStateObjects = new Dictionary<string, PipelineStateObject>();
+
+        public Dictionary<IntPtr, string> ptr2String = new Dictionary<IntPtr, string>();
+        public Dictionary<string, IntPtr> string2Ptr = new Dictionary<string, IntPtr>();
+
         public ConcurrentQueue<GPUUpload> uploadQueue = new ConcurrentQueue<GPUUpload>();
         public RingUploadBuffer uploadBuffer = new RingUploadBuffer();
 
@@ -48,6 +52,21 @@ namespace VorticeImGuiDx12.ResourcesManage
             RegisterInputLayouts();
         }
 
+        int a = 65536;
+        public IntPtr GetStringId(string s)
+        {
+            if (string2Ptr.TryGetValue(s, out IntPtr ptr))
+                return ptr;
+            ptr = new IntPtr(a);
+            string2Ptr[s] = ptr;
+            ptr2String[ptr] = s;
+            a++;
+            return ptr;
+        }
+        public string IdToString(IntPtr ptr) => ptr2String[ptr];
+        public Texture2D GetTexByStrId(IntPtr ptr) => renderTargets[ptr2String[ptr]];
+
+
         byte[] LoadShader(DxcShaderStage shaderStage, string path, string entryPoint)
         {
             var result = DxcCompiler.Compile(shaderStage, File.ReadAllText(path), entryPoint);
@@ -68,7 +87,7 @@ namespace VorticeImGuiDx12.ResourcesManage
         //get or create mesh
         public Mesh GetMesh(string name)
         {
-            if(meshes.TryGetValue(name,out Mesh mesh))
+            if (meshes.TryGetValue(name, out Mesh mesh))
             {
                 return mesh;
             }
@@ -98,16 +117,19 @@ namespace VorticeImGuiDx12.ResourcesManage
         public void Dispose()
         {
             uploadBuffer?.Dispose();
-            foreach (var pair in rootSignatures)
-                pair.Value.Dispose();
-            foreach (var pair in renderTargets)
-                pair.Value.Dispose();
-            foreach (var pair in pipelineStateObjects)
-                pair.Value.Dispose();
-            foreach (var pair in meshes)
-                pair.Value.Dispose();
+            DisposeDictionaryItems(rootSignatures);
+            DisposeDictionaryItems(renderTargets);
+            DisposeDictionaryItems(pipelineStateObjects);
+            DisposeDictionaryItems(meshes);
+
             graphicsContext.Dispose();
             device.Dispose();
+        }
+        void DisposeDictionaryItems<T1, T2>(Dictionary<T1, T2> dict) where T2 : IDisposable
+        {
+            foreach (var pair in dict)
+                pair.Value.Dispose();
+            dict.Clear();
         }
     }
 }
