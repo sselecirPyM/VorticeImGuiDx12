@@ -15,7 +15,7 @@ namespace VorticeImGuiDx12
         CommonContext context = new CommonContext();
         CommonRenderPipeline commonRenderPipeline = new CommonRenderPipeline();
         ImGuiRender GUIRender = new ImGuiRender();
-
+        DateTime current;
         public Win32Window Win32Window;
         public AppWindow(Win32Window Win32Window)
         {
@@ -60,7 +60,7 @@ namespace VorticeImGuiDx12
             var graphicsContext = context.graphicsContext;
             context.device.Begin();
             graphicsContext.BeginCommand();
-            context.GPUUploadDatas();
+            context.GPUUploadDatas(graphicsContext);
             graphicsContext.SetDescriptorHeapDefault();
             graphicsContext.ScreenBeginRender();
             graphicsContext.SetRenderTargetScreen();
@@ -85,6 +85,10 @@ namespace VorticeImGuiDx12
             commonRenderPipeline.Prepare();
             commonRenderPipeline.Render();
             ImGui.SetCurrentContext(context.imguiContext);
+            var previous = current;
+            current = DateTime.Now;
+            float delta = (float)(current - previous).TotalSeconds;
+            ImGui.GetIO().DeltaTime = delta;
             context.imguiInputHandler.Update();
             GUIRender.Render();
             graphicsContext.ScreenEndRender();

@@ -99,17 +99,17 @@ namespace VorticeImGuiDx12.ResourcesManage
             }
         }
 
-        public void GPUUploadDatas()
+        public void GPUUploadDatas(GraphicsContext graphicsContext1)
         {
             while (uploadQueue.TryDequeue(out var upload))
             {
                 if (upload.mesh != null)
                 {
-                    graphicsContext.UploadMesh(upload.mesh, upload.vertexData, upload.indexData, upload.stride, upload.format);
+                    graphicsContext1.UploadMesh(upload.mesh, upload.vertexData, upload.indexData, upload.stride, upload.format);
                 }
                 if (upload.texture2D != null)
                 {
-                    graphicsContext.UploadTexture(upload.texture2D, upload.textureData);
+                    graphicsContext1.UploadTexture(upload.texture2D, upload.textureData);
                 }
             }
         }
