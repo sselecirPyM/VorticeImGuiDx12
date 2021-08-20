@@ -10,6 +10,7 @@ namespace VorticeImGuiDx12.Graphics
     {
         public ID3D12Resource vertex;
         public ID3D12Resource index;
+        public UnnamedInputLayout unnamedInputLayout;
         public int sizeInByte;
         public int stride;
         public int indexCount;

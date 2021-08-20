@@ -23,6 +23,7 @@ namespace VorticeImGuiDx12.Graphics
 
         public void DrawIndexedInstanced(int indexCountPerInstance, int instanceCount, int startIndexLocation, int baseVertexLocation, int startInstanceLocation)
         {
+            commandList.SetPipelineState(pipelineStateObject.GetState(graphicsDevice, psoDesc, currentRootSignature, unnamedInputLayout));
             commandList.DrawIndexedInstanced(indexCountPerInstance, instanceCount, startIndexLocation, baseVertexLocation, startInstanceLocation);
         }
 
@@ -96,6 +97,7 @@ namespace VorticeImGuiDx12.Graphics
                 commandList.IASetVertexBuffers(0, new VertexBufferView(mesh.vertex.GPUVirtualAddress, mesh.sizeInByte, mesh.stride));
             if (mesh.index != null)
                 commandList.IASetIndexBuffer(new IndexBufferView(mesh.index.GPUVirtualAddress, mesh.indexSizeInByte, mesh.indexFormat));
+            unnamedInputLayout = mesh.unnamedInputLayout;
         }
 
         public void UploadMesh(Mesh mesh, Span<byte> vertex, Span<byte> index, int stride, Format indexFormat)
@@ -183,7 +185,8 @@ namespace VorticeImGuiDx12.Graphics
 
         public void SetPipelineState(PipelineStateObject pipelineStateObject, PSODesc psoDesc)
         {
-            commandList.SetPipelineState(pipelineStateObject.GetState(graphicsDevice, psoDesc, currentRootSignature));
+            this.pipelineStateObject = pipelineStateObject;
+            this.psoDesc = psoDesc;
         }
 
         public void ClearRenderTarget(Texture2D texture2D)
@@ -231,7 +234,9 @@ namespace VorticeImGuiDx12.Graphics
             }
         }
         public RootSignature currentRootSignature;
-
+        public PipelineStateObject pipelineStateObject;
+        public PSODesc psoDesc;
+        public UnnamedInputLayout unnamedInputLayout;
 
         private void CBVSRVUAVHandle(out CpuDescriptorHandle cpuHandle, out GpuDescriptorHandle gpuHandle)
         {

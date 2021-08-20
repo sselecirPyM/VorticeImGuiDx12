@@ -386,8 +386,6 @@ namespace VorticeImGuiDx12.Graphics
         public int bufferCount = 3;
         public int CBVSRVUAVDescriptorCount = 65536;
 
-        public Dictionary<string, InputLayoutDescription> inputLayouts = new Dictionary<string, InputLayoutDescription>();
-
         void ThrowIfFailed(SharpGen.Runtime.Result hr)
         {
             if (hr != SharpGen.Runtime.Result.Ok)

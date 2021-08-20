@@ -77,11 +77,11 @@ namespace VorticeImGuiDx12.ResourcesManage
 
         void RegisterInputLayouts()
         {
-            device.inputLayouts["ImGui"] = new InputLayoutDescription(
-                     new InputElementDescription("POSITION", 0, Format.R32G32_Float, 0),
-                     new InputElementDescription("TEXCOORD", 0, Format.R32G32_Float, 0),
-                     new InputElementDescription("COLOR", 0, Format.R8G8B8A8_UNorm, 0)
-                     );
+            //device.inputLayouts["ImGui"] = new InputLayoutDescription(
+            //         new InputElementDescription("POSITION", 0, Format.R32G32_Float, 0),
+            //         new InputElementDescription("TEXCOORD", 0, Format.R32G32_Float, 0),
+            //         new InputElementDescription("COLOR", 0, Format.R8G8B8A8_UNorm, 0)
+            //         );
         }
 
         //get or create mesh
@@ -94,6 +94,15 @@ namespace VorticeImGuiDx12.ResourcesManage
             else
             {
                 mesh = new Mesh();
+                mesh.unnamedInputLayout = new UnnamedInputLayout()
+                {
+                    inputElementDescriptions = new[]
+                    {
+                     new InputElementDescription("POSITION", 0, Format.R32G32_Float, 0),
+                     new InputElementDescription("TEXCOORD", 0, Format.R32G32_Float, 0),
+                     new InputElementDescription("COLOR", 0, Format.R8G8B8A8_UNorm, 0)
+                     }
+                };
                 meshes[name] = mesh;
                 return mesh;
             }

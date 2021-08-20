@@ -26,7 +26,7 @@ namespace VorticeImGuiDx12.Graphics
             this.pixelShader = pixelShader.compiledCode;
         }
 
-        public ID3D12PipelineState GetState(GraphicsDevice device, PSODesc desc, RootSignature rootSignature)
+        public ID3D12PipelineState GetState(GraphicsDevice device, PSODesc desc, RootSignature rootSignature, UnnamedInputLayout inputLayout)
         {
             foreach (var psoCombind in PSOCombinds)
             {
@@ -39,12 +39,14 @@ namespace VorticeImGuiDx12.Graphics
             }
             InputLayoutDescription inputLayoutDescription;
 
-            if (device.inputLayouts.TryGetValue(desc.InputLayout, out inputLayoutDescription))
-            {
+            //if (device.inputLayouts.TryGetValue(desc.InputLayout, out inputLayoutDescription))
+            //{
 
-            }
-            else
-                inputLayoutDescription = new InputLayoutDescription(new InputElementDescription("POSITION", 0, Format.R32G32B32_Float, 0));
+            //}
+            //else
+            //    inputLayoutDescription = new InputLayoutDescription(new InputElementDescription("POSITION", 0, Format.R32G32B32_Float, 0));
+
+            inputLayoutDescription = inputLayout.inputElementDescriptions;
 
             GraphicsPipelineStateDescription graphicsPipelineStateDescription = new GraphicsPipelineStateDescription();
             graphicsPipelineStateDescription.RootSignature = rootSignature.rootSignature;
@@ -99,6 +101,7 @@ namespace VorticeImGuiDx12.Graphics
         public PSODesc PSODesc;
         public RootSignature rootSignature;
         public ID3D12PipelineState pipelineState;
+        public UnnamedInputLayout unnamedInputLayout;
     }
     public struct PSODesc : IEquatable<PSODesc>
     {
