@@ -30,23 +30,14 @@ namespace VorticeImGuiDx12.Graphics
         {
             foreach (var psoCombind in PSOCombinds)
             {
-                if (psoCombind.PSODesc == desc && psoCombind.rootSignature == rootSignature)
+                if (psoCombind.PSODesc == desc && psoCombind.rootSignature == rootSignature && psoCombind.unnamedInputLayout == inputLayout)
                 {
                     if (psoCombind.pipelineState == null)
                         throw new Exception("pipeline state error");
                     return psoCombind.pipelineState;
                 }
             }
-            InputLayoutDescription inputLayoutDescription;
-
-            //if (device.inputLayouts.TryGetValue(desc.InputLayout, out inputLayoutDescription))
-            //{
-
-            //}
-            //else
-            //    inputLayoutDescription = new InputLayoutDescription(new InputElementDescription("POSITION", 0, Format.R32G32B32_Float, 0));
-
-            inputLayoutDescription = inputLayout.inputElementDescriptions;
+            InputLayoutDescription inputLayoutDescription = inputLayout.inputElementDescriptions;
 
             GraphicsPipelineStateDescription graphicsPipelineStateDescription = new GraphicsPipelineStateDescription();
             graphicsPipelineStateDescription.RootSignature = rootSignature.rootSignature;
@@ -77,7 +68,7 @@ namespace VorticeImGuiDx12.Graphics
             var pipelineState = device.device.CreateGraphicsPipelineState<ID3D12PipelineState>(graphicsPipelineStateDescription);
             if (pipelineState == null)
                 throw new Exception("pipeline state error");
-            PSOCombinds.Add(new PSOCombind { PSODesc = desc, pipelineState = pipelineState, rootSignature = rootSignature });
+            PSOCombinds.Add(new PSOCombind { PSODesc = desc, pipelineState = pipelineState, rootSignature = rootSignature, unnamedInputLayout = inputLayout });
             return pipelineState;
         }
 
@@ -157,6 +148,5 @@ namespace VorticeImGuiDx12.Graphics
         {
             return !(x == y);
         }
-        //public InputLayoutDescription InputLayout;
     }
 }

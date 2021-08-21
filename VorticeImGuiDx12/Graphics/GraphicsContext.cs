@@ -29,7 +29,7 @@ namespace VorticeImGuiDx12.Graphics
 
         public void SetDescriptorHeapDefault()
         {
-            commandList.SetDescriptorHeaps(1, new[] { graphicsDevice.cbvsrvuavHeap });
+            commandList.SetDescriptorHeaps(1, new[] { graphicsDevice.cbvsrvuavHeap.heap });
         }
 
         public void SetRootSignature(RootSignature rootSignature)
@@ -53,7 +53,7 @@ namespace VorticeImGuiDx12.Graphics
             shaderResourceViewDescription.Texture2D.MipLevels = texture.mipLevels;
 
             texture.StateChange(commandList, ResourceStates.GenericRead);
-            CBVSRVUAVHandle(out CpuDescriptorHandle cpuHandle, out GpuDescriptorHandle gpuHandle);
+            graphicsDevice.cbvsrvuavHeap.GetTempHandle(out CpuDescriptorHandle cpuHandle, out GpuDescriptorHandle gpuHandle);
             graphicsDevice.device.CreateShaderResourceView(texture.resource, shaderResourceViewDescription, cpuHandle);
             commandList.SetGraphicsRootDescriptorTable(currentRootSignature.srv[slot], gpuHandle);
         }
@@ -166,9 +166,6 @@ namespace VorticeImGuiDx12.Graphics
                 ResourceDescription.Texture2D(texture.format, (ulong)texture.width, texture.height, 1, 1),
                 ResourceStates.CopyDestination);
 
-            //var ptr = resourceUpload1.Map(0);
-            //MemCpy(ptr, data, (uint)data.Length);
-            //resourceUpload1.Unmap(0);
             GCHandle gcHandle = GCHandle.Alloc(data, GCHandleType.Pinned);
             resourceUpload1.WriteToSubresource(0, data, data.Length / texture.height, data.Length);
             gcHandle.Free();
@@ -237,18 +234,6 @@ namespace VorticeImGuiDx12.Graphics
         public PipelineStateObject pipelineStateObject;
         public PSODesc psoDesc;
         public UnnamedInputLayout unnamedInputLayout;
-
-        private void CBVSRVUAVHandle(out CpuDescriptorHandle cpuHandle, out GpuDescriptorHandle gpuHandle)
-        {
-            CpuDescriptorHandle handle = graphicsDevice.cbvsrvuavHeap.GetCPUDescriptorHandleForHeapStart();
-            handle.Ptr += graphicsDevice.cbvsrvuavAllocatedCount * graphicsDevice.cbvsrvuavHeapIncrementSize;
-            GpuDescriptorHandle gpuHandle1 = graphicsDevice.cbvsrvuavHeap.GetGPUDescriptorHandleForHeapStart();
-            gpuHandle1.Ptr += (ulong)(graphicsDevice.cbvsrvuavAllocatedCount * graphicsDevice.cbvsrvuavHeapIncrementSize);
-
-            graphicsDevice.cbvsrvuavAllocatedCount = (graphicsDevice.cbvsrvuavAllocatedCount + 1) % graphicsDevice.CBVSRVUAVDescriptorCount;
-            cpuHandle = handle;
-            gpuHandle = gpuHandle1;
-        }
 
         public void Dispose()
         {

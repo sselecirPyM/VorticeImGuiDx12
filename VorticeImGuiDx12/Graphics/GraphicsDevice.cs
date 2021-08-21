@@ -49,22 +49,19 @@ namespace VorticeImGuiDx12.Graphics
             descriptorHeapDescription.Type = DescriptorHeapType.ConstantBufferViewShaderResourceViewUnorderedAccessView;
             descriptorHeapDescription.Flags = DescriptorHeapFlags.ShaderVisible;
             descriptorHeapDescription.NodeMask = 0;
-            ThrowIfFailed(device.CreateDescriptorHeap(descriptorHeapDescription, out cbvsrvuavHeap));
+            cbvsrvuavHeap.Initialize(this, descriptorHeapDescription);
 
-            descriptorHeapDescription.DescriptorCount = 16;
+            descriptorHeapDescription.DescriptorCount = 64;
             descriptorHeapDescription.Type = DescriptorHeapType.DepthStencilView;
             descriptorHeapDescription.Flags = DescriptorHeapFlags.None;
-            ThrowIfFailed(device.CreateDescriptorHeap(descriptorHeapDescription, out dsvHeap));
+            dsvHeap.Initialize(this, descriptorHeapDescription);
 
-            descriptorHeapDescription.DescriptorCount = 16;
+            descriptorHeapDescription.DescriptorCount = 64;
             descriptorHeapDescription.Type = DescriptorHeapType.RenderTargetView;
             descriptorHeapDescription.Flags = DescriptorHeapFlags.None;
-            ThrowIfFailed(device.CreateDescriptorHeap(descriptorHeapDescription, out rtvHeap));
+            rtvHeap.Initialize(this, descriptorHeapDescription);
             waitHandle = new EventWaitHandle(false, EventResetMode.AutoReset);
 
-            cbvsrvuavHeapIncrementSize = device.GetDescriptorHandleIncrementSize(DescriptorHeapType.ConstantBufferViewShaderResourceViewUnorderedAccessView);
-            dsvHeapIncrementSize = device.GetDescriptorHandleIncrementSize(DescriptorHeapType.DepthStencilView);
-            rtvHeapIncrementSize = device.GetDescriptorHandleIncrementSize(DescriptorHeapType.RenderTargetView);
             commandAllocators = new List<ID3D12CommandAllocator>();
             for (int i = 0; i < bufferCount; i++)
             {
@@ -111,14 +108,10 @@ namespace VorticeImGuiDx12.Graphics
                 ThrowIfFailed(swapChain.ResizeBuffers(bufferCount, width, height, swapChainFormat, SwapChainFlags.AllowTearing));
             }
             screenResources = new List<ID3D12Resource>();
-            CpuDescriptorHandle handle = rtvHeap.GetCPUDescriptorHandleForHeapStart();
-
             for (int i = 0; i < bufferCount; i++)
             {
                 ThrowIfFailed(swapChain.GetBuffer(i, out ID3D12Resource res));
                 screenResources.Add(res);
-                device.CreateRenderTargetView(res, null, handle);
-                handle.Ptr += rtvHeapIncrementSize;
             }
         }
 
@@ -129,8 +122,9 @@ namespace VorticeImGuiDx12.Graphics
 
         public CpuDescriptorHandle GetRenderTargetScreen()
         {
-            CpuDescriptorHandle handle = rtvHeap.GetCPUDescriptorHandleForHeapStart();
-            handle.Ptr += swapChain.GetCurrentBackBufferIndex() * rtvHeapIncrementSize;
+            CpuDescriptorHandle handle = rtvHeap.GetTempCpuHandle();
+            var res = screenResources[swapChain.GetCurrentBackBufferIndex()];
+            device.CreateRenderTargetView(res, null, handle);
             return handle;
         }
 
@@ -359,20 +353,15 @@ namespace VorticeImGuiDx12.Graphics
         public IDXGIAdapter adapter;
         public IDXGIFactory7 dxgiFactory;
         public ID3D12CommandQueue commandQueue;
-        public ID3D12DescriptorHeap cbvsrvuavHeap;
-        public int cbvsrvuavAllocatedCount;
-        public ID3D12DescriptorHeap dsvHeap;
-        public ID3D12DescriptorHeap rtvHeap;
+        public DescriptorHeapX cbvsrvuavHeap = new DescriptorHeapX();
+        public DescriptorHeapX dsvHeap = new DescriptorHeapX();
+        public DescriptorHeapX rtvHeap = new DescriptorHeapX();
         public IDXGISwapChain3 swapChain;
         public List<ID3D12CommandAllocator> commandAllocators;
         public EventWaitHandle waitHandle;
         public ID3D12Fence fence;
 
         public Queue<ResourceDelayDestroy> delayDestroy = new Queue<ResourceDelayDestroy>();
-
-        public int cbvsrvuavHeapIncrementSize;
-        public int dsvHeapIncrementSize;
-        public int rtvHeapIncrementSize;
 
         public int executeIndex = 0;
         public ulong executeCount = 3;//greater equal than 'bufferCount'
@@ -386,7 +375,7 @@ namespace VorticeImGuiDx12.Graphics
         public int bufferCount = 3;
         public int CBVSRVUAVDescriptorCount = 65536;
 
-        void ThrowIfFailed(SharpGen.Runtime.Result hr)
+        public static void ThrowIfFailed(SharpGen.Runtime.Result hr)
         {
             if (hr != SharpGen.Runtime.Result.Ok)
             {
