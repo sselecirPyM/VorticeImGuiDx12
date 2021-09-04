@@ -88,7 +88,12 @@ namespace VorticeImGuiDx12.RenderPipeline
                 var vertBytes = cmdList.VtxBuffer.Size * sizeof(ImDrawVert);
                 var indexBytes = cmdList.IdxBuffer.Size * sizeof(ImDrawIdx);
 
-                context.uploadBuffer.UploadMesh(graphicsContext, imguiMesh, new Span<byte>(cmdList.VtxBuffer.Data.ToPointer(), vertBytes), new Span<byte>(cmdList.IdxBuffer.Data.ToPointer(), indexBytes), sizeof(ImDrawVert), Format.R16_UInt);
+                context.uploadBuffer.UploadMeshIndex(graphicsContext, imguiMesh, new Span<byte>(cmdList.IdxBuffer.Data.ToPointer(), indexBytes), Format.R16_UInt);
+                context.uploadBuffer.UploadVertexBuffer(graphicsContext,ref imguiMesh._vertex, new Span<byte>(cmdList.VtxBuffer.Data.ToPointer(), vertBytes));
+                imguiMesh.vertices["POSITION"] = new _VertexBuffer() { offset = 0, resource = imguiMesh._vertex, sizeInByte = vertBytes, stride = sizeof(ImDrawVert) };
+                imguiMesh.vertices["TEXCOORD"] = new _VertexBuffer() { offset = 8, resource = imguiMesh._vertex, sizeInByte = vertBytes, stride = sizeof(ImDrawVert) };
+                imguiMesh.vertices["COLOR"] = new _VertexBuffer() { offset = 16, resource = imguiMesh._vertex, sizeInByte = vertBytes, stride = sizeof(ImDrawVert) };
+
                 graphicsContext.SetMesh(imguiMesh);
 
                 for (int j = 0; j < cmdList.CmdBuffer.Size; j++)

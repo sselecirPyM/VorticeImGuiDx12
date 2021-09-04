@@ -16,7 +16,6 @@ namespace VorticeImGuiDx12.Graphics
         public string name;
         public Format format;
         public int stride;
-        public Mesh mesh;
         public Texture2D texture2D;
         public void Quad()
         {

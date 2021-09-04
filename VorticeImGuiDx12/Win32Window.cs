@@ -45,6 +45,32 @@ namespace VorticeImGuiDx12
             Handle = hwnd;
         }
 
+        public virtual bool ProcessMessage(uint msg, UIntPtr wParam, IntPtr lParam)
+        {
+            switch ((WindowMessage)msg)
+            {
+                case WindowMessage.Size:
+                    switch ((SizeMessage)wParam)
+                    {
+                        case SizeMessage.SIZE_RESTORED:
+                        case SizeMessage.SIZE_MAXIMIZED:
+                            IsMinimized = false;
+
+                            var lp = (int)lParam;
+                            Width = Utils.Loword(lp);
+                            Height = Utils.Hiword(lp);
+                            break;
+                        case SizeMessage.SIZE_MINIMIZED:
+                            IsMinimized = true;
+                            break;
+                        default:
+                            break;
+                    }
+                    break;
+            }
+            return false;
+        }
+
         public void Destroy()
         {
             if (Handle != IntPtr.Zero)

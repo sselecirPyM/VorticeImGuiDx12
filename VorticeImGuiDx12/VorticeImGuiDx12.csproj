@@ -33,12 +33,6 @@
     <None Update="Data\Shaders\PS_ImGui.hlsl">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Update="Data\Shaders\PS_FullScreen.hlsl">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="Data\Shaders\VS_FullScreen.hlsl">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
     <None Update="Data\Shaders\VS_ImGui.hlsl">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

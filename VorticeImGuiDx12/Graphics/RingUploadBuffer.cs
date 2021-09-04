@@ -46,32 +46,22 @@ namespace VorticeImGuiDx12.Graphics
             graphicsContext.SetCBV(this, offset, slot);
         }
 
-        public void UploadMesh(GraphicsContext context, Mesh mesh, Span<byte> vertex, Span<byte> index, int stride, Format indexFormat)
+
+        public void UploadMeshIndex(GraphicsContext context, Mesh mesh, Span<byte> index, Format indexFormat)
         {
             var graphicsDevice = context.graphicsDevice;
             var commandList = context.commandList;
 
 
-            int uploadMark1 = Upload(vertex);
             int uploadMark2 = Upload(index);
-            if (mesh.sizeInByte != vertex.Length
-                || mesh.stride != stride
-                || mesh.indexFormat != indexFormat
+            if (mesh.indexFormat != indexFormat
                 || mesh.indexCount != index.Length / (indexFormat == Format.R32_UInt ? 4 : 2)
                 || mesh.indexSizeInByte != index.Length)
             {
-                mesh.sizeInByte = vertex.Length;
-                mesh.stride = stride;
                 mesh.indexFormat = indexFormat;
                 mesh.indexCount = index.Length / (indexFormat == Format.R32_UInt ? 4 : 2);
                 mesh.indexSizeInByte = index.Length;
-                graphicsDevice.DestroyResource(mesh.vertex);
                 graphicsDevice.DestroyResource(mesh.index);
-                mesh.vertex = graphicsDevice.device.CreateCommittedResource<ID3D12Resource>(
-                    HeapProperties.DefaultHeapProperties,
-                    HeapFlags.None,
-                    ResourceDescription.Buffer((ulong)vertex.Length),
-                    ResourceStates.CopyDestination);
 
                 mesh.index = graphicsDevice.device.CreateCommittedResource<ID3D12Resource>(
                     HeapProperties.DefaultHeapProperties,
@@ -81,14 +71,28 @@ namespace VorticeImGuiDx12.Graphics
             }
             else
             {
-                commandList.ResourceBarrierTransition(mesh.vertex, ResourceStates.GenericRead, ResourceStates.CopyDestination);
                 commandList.ResourceBarrierTransition(mesh.index, ResourceStates.GenericRead, ResourceStates.CopyDestination);
             }
 
-            commandList.CopyBufferRegion(mesh.vertex, 0, resource, (ulong)uploadMark1, (ulong)vertex.Length);
             commandList.CopyBufferRegion(mesh.index, 0, resource, (ulong)uploadMark2, (ulong)index.Length);
-            commandList.ResourceBarrierTransition(mesh.vertex, ResourceStates.CopyDestination, ResourceStates.GenericRead);
             commandList.ResourceBarrierTransition(mesh.index, ResourceStates.CopyDestination, ResourceStates.GenericRead);
+        }
+
+        public void UploadVertexBuffer(GraphicsContext context, ref ID3D12Resource resource1, Span<byte> vertex)
+        {
+            var graphicsDevice = context.graphicsDevice;
+            var commandList = context.commandList;
+
+            int uploadMark1 = Upload(vertex);
+            graphicsDevice.DestroyResource(resource1);
+            resource1 = graphicsDevice.device.CreateCommittedResource<ID3D12Resource>(
+                HeapProperties.DefaultHeapProperties,
+                HeapFlags.None,
+                ResourceDescription.Buffer((ulong)vertex.Length),
+                ResourceStates.CopyDestination);
+
+            commandList.CopyBufferRegion(resource1, 0, resource, (ulong)uploadMark1, (ulong)vertex.Length);
+            commandList.ResourceBarrierTransition(resource1, ResourceStates.CopyDestination, ResourceStates.GenericRead);
         }
     }
 }

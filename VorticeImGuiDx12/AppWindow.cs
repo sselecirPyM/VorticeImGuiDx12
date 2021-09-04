@@ -14,7 +14,7 @@ namespace VorticeImGuiDx12
     {
         CommonContext context = new CommonContext();
         CommonRenderPipeline commonRenderPipeline = new CommonRenderPipeline();
-        ImGuiRender GUIRender = new ImGuiRender();
+        ImGuiRender imGuiRender = new ImGuiRender();
         DateTime current;
         public Win32Window Win32Window;
         public AppWindow(Win32Window Win32Window)
@@ -24,7 +24,7 @@ namespace VorticeImGuiDx12
         public void Initialize()
         {
             commonRenderPipeline.context = context;
-            GUIRender.context = context;
+            imGuiRender.context = context;
             context.LoadDefaultResource();
             commonRenderPipeline.Initialize();
 
@@ -32,12 +32,12 @@ namespace VorticeImGuiDx12
             context.uploadBuffer.Initialize(context.device, 67108864);//64 MB
 
 
-            GPUUpload uploadTest = new GPUUpload();//just test
-            uploadTest.mesh = context.GetMesh("quad");
-            uploadTest.Quad();
-            context.uploadQueue.Enqueue(uploadTest);
+            //GPUUpload uploadTest = new GPUUpload();//just test
+            //uploadTest.mesh = context.GetMesh("quad");
+            //uploadTest.Quad();
+            //context.uploadQueue.Enqueue(uploadTest);
 
-            GUIRender.Init();
+            imGuiRender.Init();
             context.imguiInputHandler = new ImGuiInputHandler();
             context.imguiInputHandler.hwnd = Win32Window.Handle;
 
@@ -66,22 +66,6 @@ namespace VorticeImGuiDx12
             graphicsContext.SetRenderTargetScreen();
             graphicsContext.ClearRenderTargetScreen(new Color4(0.5f, 0.5f, 1, 1));
 
-            //just test
-            //int index1 = context.uploadBuffer.Upload<System.Numerics.Vector4>(new[] { new System.Numerics.Vector4(1, 0, 1, 1) });
-            //PSODesc testDesc = new PSODesc();
-            //testDesc.CullMode = Vortice.Direct3D12.CullMode.None;
-            //testDesc.RenderTargetFormat = Vortice.DXGI.Format.R8G8B8A8_UNorm;
-            //testDesc.RenderTargetCount = 1;
-            //testDesc.PrimitiveTopologyType = Vortice.Direct3D12.PrimitiveTopologyType.Triangle;
-            //testDesc.InputLayout = "";
-            //graphicsContext.SetRootSignature(Pipeline12Util.FromString(context, "Cssss"));
-            //graphicsContext.SetPipelineState(context.pipelineStateObjects["Test"], testDesc);
-            //graphicsContext.SetMesh(context.meshes["quad"]);
-            //graphicsContext.SetSRV(context.renderTargets["imgui_font"], 0);
-            //context.uploadBuffer.SetCBV(graphicsContext, index1, 0);
-
-            //graphicsContext.DrawIndexedInstanced(6, 1, 0, 0, 0);
-
             commonRenderPipeline.Prepare();
             commonRenderPipeline.Render();
             ImGui.SetCurrentContext(context.imguiContext);
@@ -90,7 +74,7 @@ namespace VorticeImGuiDx12
             float delta = (float)(current - previous).TotalSeconds;
             ImGui.GetIO().DeltaTime = delta;
             context.imguiInputHandler.Update();
-            GUIRender.Render();
+            imGuiRender.Render();
             graphicsContext.ScreenEndRender();
             graphicsContext.EndCommand();
             graphicsContext.Execute();
@@ -102,29 +86,7 @@ namespace VorticeImGuiDx12
             if (context.imguiInputHandler != null && context.imguiInputHandler.ProcessMessage((WindowMessage)msg, wParam, lParam))
                 return true;
 
-            switch ((WindowMessage)msg)
-            {
-                case WindowMessage.Size:
-                    switch ((SizeMessage)wParam)
-                    {
-                        case SizeMessage.SIZE_RESTORED:
-                        case SizeMessage.SIZE_MAXIMIZED:
-                            Win32Window.IsMinimized = false;
-
-                            var lp = (int)lParam;
-                            Win32Window.Width = Utils.Loword(lp);
-                            Win32Window.Height = Utils.Hiword(lp);
-                            break;
-                        case SizeMessage.SIZE_MINIMIZED:
-                            Win32Window.IsMinimized = true;
-                            break;
-                        default:
-                            break;
-                    }
-                    break;
-            }
-
-            return false;
+            return Win32Window.ProcessMessage(msg, wParam, lParam);
         }
 
         public void Dispose()

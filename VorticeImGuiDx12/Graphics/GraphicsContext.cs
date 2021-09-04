@@ -93,62 +93,23 @@ namespace VorticeImGuiDx12.Graphics
         public void SetMesh(Mesh mesh)
         {
             commandList.IASetPrimitiveTopology(PrimitiveTopology.TriangleList);
-            if (mesh.vertex != null)
-                commandList.IASetVertexBuffers(0, new VertexBufferView(mesh.vertex.GPUVirtualAddress, mesh.sizeInByte, mesh.stride));
+
+            int c = -1;
+            foreach (var desc in mesh.unnamedInputLayout.inputElementDescriptions)
+            {
+                if (desc.Slot != c)
+                {
+                    if (mesh.vertices != null && mesh.vertices.TryGetValue(desc.SemanticName, out var vertex))
+                    {
+                        commandList.IASetVertexBuffers(desc.Slot, new VertexBufferView(vertex.resource.GPUVirtualAddress + (ulong)vertex.offset, vertex.sizeInByte - vertex.offset, vertex.stride));
+                    }
+                    c = desc.Slot;
+                }
+            }
+
             if (mesh.index != null)
                 commandList.IASetIndexBuffer(new IndexBufferView(mesh.index.GPUVirtualAddress, mesh.indexSizeInByte, mesh.indexFormat));
             unnamedInputLayout = mesh.unnamedInputLayout;
-        }
-
-        public void UploadMesh(Mesh mesh, Span<byte> vertex, Span<byte> index, int stride, Format indexFormat)
-        {
-            graphicsDevice.DestroyResource(mesh.vertex);
-            graphicsDevice.DestroyResource(mesh.index);
-            mesh.sizeInByte = vertex.Length;
-            mesh.stride = stride;
-            mesh.indexFormat = indexFormat;
-            mesh.indexCount = index.Length / (indexFormat == Format.R32_UInt ? 4 : 2);
-            mesh.indexSizeInByte = index.Length;
-
-            ID3D12Resource resourceUpload1 = graphicsDevice.device.CreateCommittedResource<ID3D12Resource>(
-                HeapProperties.UploadHeapProperties,
-                HeapFlags.None,
-                ResourceDescription.Buffer((ulong)vertex.Length),
-                ResourceStates.GenericRead);
-            graphicsDevice.DestroyResource(resourceUpload1);
-
-            ID3D12Resource resourceUpload2 = graphicsDevice.device.CreateCommittedResource<ID3D12Resource>(
-                HeapProperties.UploadHeapProperties,
-                HeapFlags.None,
-                ResourceDescription.Buffer((ulong)index.Length),
-                ResourceStates.GenericRead);
-            graphicsDevice.DestroyResource(resourceUpload2);
-
-            mesh.vertex = graphicsDevice.device.CreateCommittedResource<ID3D12Resource>(
-                HeapProperties.DefaultHeapProperties,
-                HeapFlags.None,
-                ResourceDescription.Buffer((ulong)vertex.Length),
-                ResourceStates.CopyDestination);
-
-            mesh.index = graphicsDevice.device.CreateCommittedResource<ID3D12Resource>(
-                HeapProperties.DefaultHeapProperties,
-                HeapFlags.None,
-                ResourceDescription.Buffer((ulong)index.Length),
-                ResourceStates.CopyDestination);
-            unsafe
-            {
-                var ptr = resourceUpload1.Map(0);
-                vertex.CopyTo(new Span<byte>(ptr.ToPointer(), vertex.Length));
-                resourceUpload1.Unmap(0);
-
-                ptr = resourceUpload2.Map(0);
-                index.CopyTo(new Span<byte>(ptr.ToPointer(), index.Length));
-                resourceUpload2.Unmap(0);
-            }
-            commandList.CopyBufferRegion(mesh.vertex, 0, resourceUpload1, 0, (ulong)vertex.Length);
-            commandList.CopyBufferRegion(mesh.index, 0, resourceUpload2, 0, (ulong)index.Length);
-            commandList.ResourceBarrierTransition(mesh.vertex, ResourceStates.CopyDestination, ResourceStates.GenericRead);
-            commandList.ResourceBarrierTransition(mesh.index, ResourceStates.CopyDestination, ResourceStates.GenericRead);
         }
 
         public void UploadTexture(Texture2D texture, byte[] data)

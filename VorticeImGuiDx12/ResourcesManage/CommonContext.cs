@@ -49,7 +49,6 @@ namespace VorticeImGuiDx12.ResourcesManage
             {
                 pipelineStateObjects[ps.Name] = new PipelineStateObject(VertexShaders[ps.VertexShader], PixelShaders[ps.PixelShader]); ;
             }
-            RegisterInputLayouts();
         }
 
         int a = 65536;
@@ -75,15 +74,6 @@ namespace VorticeImGuiDx12.ResourcesManage
             return result.GetResult().ToArray();
         }
 
-        void RegisterInputLayouts()
-        {
-            //device.inputLayouts["ImGui"] = new InputLayoutDescription(
-            //         new InputElementDescription("POSITION", 0, Format.R32G32_Float, 0),
-            //         new InputElementDescription("TEXCOORD", 0, Format.R32G32_Float, 0),
-            //         new InputElementDescription("COLOR", 0, Format.R8G8B8A8_UNorm, 0)
-            //         );
-        }
-
         //get or create mesh
         public Mesh GetMesh(string name)
         {
@@ -99,8 +89,8 @@ namespace VorticeImGuiDx12.ResourcesManage
                     inputElementDescriptions = new[]
                     {
                      new InputElementDescription("POSITION", 0, Format.R32G32_Float, 0),
-                     new InputElementDescription("TEXCOORD", 0, Format.R32G32_Float, 0),
-                     new InputElementDescription("COLOR", 0, Format.R8G8B8A8_UNorm, 0)
+                     new InputElementDescription("TEXCOORD", 0, Format.R32G32_Float, 1),
+                     new InputElementDescription("COLOR", 0, Format.R8G8B8A8_UNorm, 2)
                      }
                 };
                 meshes[name] = mesh;
@@ -112,10 +102,10 @@ namespace VorticeImGuiDx12.ResourcesManage
         {
             while (uploadQueue.TryDequeue(out var upload))
             {
-                if (upload.mesh != null)
-                {
-                    graphicsContext1.UploadMesh(upload.mesh, upload.vertexData, upload.indexData, upload.stride, upload.format);
-                }
+                //if (upload.mesh != null)
+                //{
+                //    graphicsContext1.UploadMesh(upload.mesh, upload.vertexData, upload.indexData, upload.stride, upload.format);
+                //}
                 if (upload.texture2D != null)
                 {
                     graphicsContext1.UploadTexture(upload.texture2D, upload.textureData);
