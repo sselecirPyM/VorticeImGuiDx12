@@ -10,6 +10,12 @@ using Vortice.Mathematics;
 
 namespace VorticeImGuiDx12.Graphics
 {
+    unsafe struct D3D12_MEMCPY_DEST
+    {
+        public void* pData;
+        public ulong RowPitch;
+        public ulong SlicePitch;
+    }
     public class GraphicsContext : IDisposable
     {
         const int D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING = 5768;
@@ -115,9 +121,9 @@ namespace VorticeImGuiDx12.Graphics
         public void UploadTexture(Texture2D texture, byte[] data)
         {
             ID3D12Resource resourceUpload1 = graphicsDevice.device.CreateCommittedResource<ID3D12Resource>(
-                new HeapProperties(CpuPageProperty.WriteBack, MemoryPool.L0),
+                new HeapProperties(HeapType.Upload),
                 HeapFlags.None,
-                ResourceDescription.Texture2D(texture.format, (ulong)texture.width, texture.height, 1, 1),
+                ResourceDescription.Buffer((ulong)data.Length),
                 ResourceStates.GenericRead);
             graphicsDevice.DestroyResource(resourceUpload1);
             graphicsDevice.DestroyResource(texture.resource);
@@ -127,11 +133,16 @@ namespace VorticeImGuiDx12.Graphics
                 ResourceDescription.Texture2D(texture.format, (ulong)texture.width, texture.height, 1, 1),
                 ResourceStates.CopyDestination);
 
+            uint bitsPerPixel = GraphicsDevice.BitsPerPixel(texture.format);
+            int width = texture.width;
+            int height = texture.height;
             GCHandle gcHandle = GCHandle.Alloc(data, GCHandleType.Pinned);
-            resourceUpload1.WriteToSubresource(0, data, data.Length / texture.height, data.Length);
+            SubresourceData subresourcedata = new SubresourceData();
+            subresourcedata.DataPointer = Marshal.UnsafeAddrOfPinnedArrayElement(data, 0);
+            subresourcedata.RowPitch = (IntPtr)(width * bitsPerPixel / 8);
+            subresourcedata.SlicePitch = (IntPtr)(width * height * bitsPerPixel / 8);
+            UpdateSubresources(commandList, texture.resource, resourceUpload1, 0, 0, 1, new SubresourceData[] { subresourcedata });
             gcHandle.Free();
-
-            commandList.CopyTextureRegion(new TextureCopyLocation(texture.resource), 0, 0, 0, new TextureCopyLocation(resourceUpload1));
             commandList.ResourceBarrierTransition(texture.resource, ResourceStates.CopyDestination, ResourceStates.GenericRead);
             texture.resourceStates = ResourceStates.GenericRead;
         }
@@ -180,6 +191,96 @@ namespace VorticeImGuiDx12.Graphics
         public void Execute()
         {
             graphicsDevice.commandQueue.ExecuteCommandList(commandList);
+        }
+
+        unsafe void MemcpySubresource(
+            D3D12_MEMCPY_DEST* pDest,
+            SubresourceData pSrc,
+            int RowSizeInBytes,
+            int NumRows,
+            int NumSlices)
+        {
+            for (uint z = 0; z < NumSlices; ++z)
+            {
+                byte* pDestSlice = (byte*)(pDest->pData) + pDest->SlicePitch * z;
+                byte* pSrcSlice = (byte*)(pSrc.DataPointer) + (long)pSrc.SlicePitch * z;
+                for (int y = 0; y < NumRows; ++y)
+                {
+                    new Span<byte>(pSrcSlice + ((long)pSrc.RowPitch * y), RowSizeInBytes).CopyTo(new Span<byte>(pDestSlice + (long)pDest->RowPitch * y, RowSizeInBytes));
+                }
+            }
+        }
+        unsafe ulong UpdateSubresources(
+            ID3D12GraphicsCommandList pCmdList,
+            ID3D12Resource pDestinationResource,
+            ID3D12Resource pIntermediate,
+            int FirstSubresource,
+            int NumSubresources,
+            ulong RequiredSize,
+            PlacedSubresourceFootPrint[] pLayouts,
+            int[] pNumRows,
+            ulong[] pRowSizesInBytes,
+            SubresourceData[] pSrcData)
+        {
+            var IntermediateDesc = pIntermediate.Description;
+            var DestinationDesc = pDestinationResource.Description;
+            if (IntermediateDesc.Dimension != ResourceDimension.Buffer ||
+                IntermediateDesc.Width < RequiredSize + pLayouts[0].Offset ||
+                (DestinationDesc.Dimension == ResourceDimension.Buffer &&
+                    (FirstSubresource != 0 || NumSubresources != 1)))
+            {
+                return 0;
+            }
+
+            byte* pData;
+            IntPtr data1 = pIntermediate.Map(0, null);
+            pData = (byte*)data1;
+
+            for (uint i = 0; i < NumSubresources; ++i)
+            {
+                D3D12_MEMCPY_DEST DestData = new D3D12_MEMCPY_DEST { pData = pData + pLayouts[i].Offset, RowPitch = (ulong)pLayouts[i].Footprint.RowPitch, SlicePitch = (uint)(pLayouts[i].Footprint.RowPitch) * (uint)(pNumRows[i]) };
+                MemcpySubresource(&DestData, pSrcData[i], (int)(pRowSizesInBytes[i]), pNumRows[i], pLayouts[i].Footprint.Depth);
+            }
+            pIntermediate.Unmap(0, null);
+
+            if (DestinationDesc.Dimension == ResourceDimension.Buffer)
+            {
+                pCmdList.CopyBufferRegion(
+                    pDestinationResource, 0, pIntermediate, pLayouts[0].Offset, (ulong)pLayouts[0].Footprint.Width);
+            }
+            else
+            {
+                for (int i = 0; i < NumSubresources; ++i)
+                {
+                    TextureCopyLocation Dst = new TextureCopyLocation(pDestinationResource, i + FirstSubresource);
+                    TextureCopyLocation Src = new TextureCopyLocation(pIntermediate, pLayouts[i]);
+                    pCmdList.CopyTextureRegion(Dst, 0, 0, 0, Src, null);
+                }
+            }
+            return RequiredSize;
+        }
+
+        ulong UpdateSubresources(
+            ID3D12GraphicsCommandList pCmdList,
+            ID3D12Resource pDestinationResource,
+            ID3D12Resource pIntermediate,
+            ulong IntermediateOffset,
+            int FirstSubresource,
+            int NumSubresources,
+            SubresourceData[] pSrcData)
+        {
+            PlacedSubresourceFootPrint[] pLayouts = new PlacedSubresourceFootPrint[NumSubresources];
+            ulong[] pRowSizesInBytes = new ulong[NumSubresources];
+            int[] pNumRows = new int[NumSubresources];
+
+            var Desc = pDestinationResource.Description;
+            ID3D12Device pDevice = null;
+            pDestinationResource.GetDevice(out pDevice);
+            pDevice.GetCopyableFootprints(Desc, (int)FirstSubresource, (int)NumSubresources, IntermediateOffset, pLayouts, pNumRows, pRowSizesInBytes, out ulong RequiredSize);
+            pDevice.Release();
+
+            ulong Result = UpdateSubresources(pCmdList, pDestinationResource, pIntermediate, FirstSubresource, NumSubresources, RequiredSize, pLayouts, pNumRows, pRowSizesInBytes, pSrcData);
+            return Result;
         }
 
         public ID3D12GraphicsCommandList5 commandList;
